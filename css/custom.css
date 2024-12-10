@@ -1,0 +1,27 @@
+/* 贴纸样式 */
+.sticker {
+    position: fixed;
+    z-index: 999;
+    width: 150px;  /* 贴纸大小 */
+    height: auto;
+    pointer-events: none;  /* 让贴纸不影响页面交互 */
+}
+
+/* 定位每个贴纸 */
+.sticker-1 {
+    top: 20px;
+    right: 20px;
+    transform: rotate(10deg);  /* 稍微旋转一下 */
+}
+
+.sticker-2 {
+    bottom: 40px;
+    left: 30px;
+    transform: rotate(-5deg);
+}
+
+.sticker-3 {
+    top: 50%;
+    right: 100px;
+    transform: rotate(15deg);
+}
