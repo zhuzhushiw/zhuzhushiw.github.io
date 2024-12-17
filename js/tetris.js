@@ -1,5 +1,6 @@
 class Tetris {
     constructor(element) {
+        // 初始化游戏画布
         this.element = element;
         this.canvas = document.createElement('canvas');
         this.context = this.canvas.getContext('2d');
@@ -7,15 +8,28 @@ class Tetris {
         this.canvas.height = 600;
         this.element.appendChild(this.canvas);
         
+        // 初始化游戏参数
         this.blockSize = 30;
         this.cols = this.canvas.width / this.blockSize;
         this.rows = this.canvas.height / this.blockSize;
         
+        // 初始化游戏状态
         this.board = Array(this.rows).fill().map(() => Array(this.cols).fill(0));
         this.score = 0;
         this.gameOver = false;
+        this.lastMove = Date.now();
         
-        this.currentPiece = this.newPiece();
+        // 定义方块形状和颜色
+        this.pieces = [
+            [[1, 1, 1, 1]],  // I
+            [[1, 1], [1, 1]],  // O
+            [[0, 1, 0], [1, 1, 1]],  // T
+            [[1, 0], [1, 0], [1, 1]],  // L
+            [[0, 1], [0, 1], [1, 1]],  // J
+            [[1, 1, 0], [0, 1, 1]],  // S
+            [[0, 1, 1], [1, 1, 0]]   // Z
+        ];
+        
         this.colors = [
             '#000000',  // background
             '#FF0000',  // red
@@ -27,22 +41,15 @@ class Tetris {
             '#FFA500'   // orange
         ];
         
+        // 创建第一个方块
+        this.currentPiece = this.newPiece();
+        
+        // 添加键盘事件监听
         document.addEventListener('keydown', this.handleKeyPress.bind(this));
-        this.gameLoop();
     }
     
     newPiece() {
-        const pieces = [
-            [[1, 1, 1, 1]],  // I
-            [[1, 1], [1, 1]],  // O
-            [[0, 1, 0], [1, 1, 1]],  // T
-            [[1, 0], [1, 0], [1, 1]],  // L
-            [[0, 1], [0, 1], [1, 1]],  // J
-            [[1, 1, 0], [0, 1, 1]],  // S
-            [[0, 1, 1], [1, 1, 0]]   // Z
-        ];
-        
-        const piece = pieces[Math.floor(Math.random() * pieces.length)];
+        const piece = this.pieces[Math.floor(Math.random() * this.pieces.length)];
         const color = Math.floor(Math.random() * (this.colors.length - 1)) + 1;
         return {
             shape: piece,
@@ -53,11 +60,11 @@ class Tetris {
     }
     
     draw() {
-        // Clear canvas
+        // 清空画布
         this.context.fillStyle = this.colors[0];
         this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
         
-        // Draw board
+        // 绘制已固定的方块
         for(let y = 0; y < this.rows; y++) {
             for(let x = 0; x < this.cols; x++) {
                 if(this.board[y][x]) {
@@ -66,7 +73,7 @@ class Tetris {
             }
         }
         
-        // Draw current piece
+        // 绘制当前方块
         if(this.currentPiece) {
             for(let y = 0; y < this.currentPiece.shape.length; y++) {
                 for(let x = 0; x < this.currentPiece.shape[y].length; x++) {
@@ -81,11 +88,12 @@ class Tetris {
             }
         }
         
-        // Draw score
+        // 绘制分数
         this.context.fillStyle = '#FFFFFF';
         this.context.font = '20px Arial';
         this.context.fillText(`Score: ${this.score}`, 10, 25);
         
+        // 游戏结束显示
         if(this.gameOver) {
             this.context.fillStyle = 'rgba(0, 0, 0, 0.5)';
             this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -209,6 +217,7 @@ class Tetris {
                     this.rotate();
                     break;
             }
+            this.draw();
         }
     }
     
