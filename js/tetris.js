@@ -19,10 +19,7 @@ class Tetris {
         this.rows = this.canvas.height / this.blockSize;
         
         // 初始化游戏状态
-        this.board = Array(this.rows).fill().map(() => Array(this.cols).fill(0));
-        this.score = 0;
-        this.gameOver = false;
-        this.lastMove = Date.now();
+        this.reset();
         
         // 定义方块形状
         this.pieces = [
@@ -51,11 +48,18 @@ class Tetris {
         this.handleKeyPress = this.handleKeyPress.bind(this);
         document.addEventListener('keydown', this.handleKeyPress);
         
-        // 创建第一个方块
-        this.currentPiece = this.newPiece();
-        
         // 初始化游戏循环
         this.gameLoop = this.gameLoop.bind(this);
+    }
+    
+    reset() {
+        this.board = Array(this.rows).fill().map(() => Array(this.cols).fill(0));
+        this.score = 0;
+        this.gameOver = false;
+        this.isRunning = false;
+        this.isPaused = false;
+        this.lastMove = Date.now();
+        this.currentPiece = this.newPiece();
     }
     
     newPiece() {
@@ -124,14 +128,18 @@ class Tetris {
         this.context.font = '20px Arial';
         this.context.fillText(`Score: ${this.score}`, 10, 25);
         
-        // 游戏结束显示
-        if(this.gameOver) {
+        // 游戏结束或暂停显示
+        if(this.gameOver || this.isPaused) {
             this.context.fillStyle = 'rgba(0, 0, 0, 0.5)';
             this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
             this.context.fillStyle = '#FFFFFF';
             this.context.font = '40px Arial';
             this.context.textAlign = 'center';
-            this.context.fillText('Game Over', this.canvas.width / 2, this.canvas.height / 2);
+            this.context.fillText(
+                this.gameOver ? 'Game Over' : 'Paused',
+                this.canvas.width / 2,
+                this.canvas.height / 2
+            );
             this.context.textAlign = 'start';
         }
     }
@@ -160,7 +168,7 @@ class Tetris {
     }
     
     moveDown() {
-        if (!this.currentPiece) return;
+        if (!this.currentPiece || !this.isRunning || this.isPaused) return;
         
         this.currentPiece.y++;
         if(this.checkCollision()) {
@@ -170,12 +178,13 @@ class Tetris {
             this.currentPiece = this.newPiece();
             if(this.checkCollision()) {
                 this.gameOver = true;
+                this.isRunning = false;
             }
         }
     }
     
     moveLeft() {
-        if (!this.currentPiece) return;
+        if (!this.currentPiece || !this.isRunning || this.isPaused) return;
         
         this.currentPiece.x--;
         if(this.checkCollision()) {
@@ -184,7 +193,7 @@ class Tetris {
     }
     
     moveRight() {
-        if (!this.currentPiece) return;
+        if (!this.currentPiece || !this.isRunning || this.isPaused) return;
         
         this.currentPiece.x++;
         if(this.checkCollision()) {
@@ -193,7 +202,7 @@ class Tetris {
     }
     
     rotate() {
-        if (!this.currentPiece || !this.currentPiece.shape) return;
+        if (!this.currentPiece || !this.currentPiece.shape || !this.isRunning || this.isPaused) return;
         
         const rotated = [];
         for(let i = 0; i < this.currentPiece.shape[0].length; i++) {
@@ -261,7 +270,12 @@ class Tetris {
     }
     
     handleKeyPress(event) {
-        if(this.gameOver) return;
+        if(this.gameOver || !this.isRunning || this.isPaused) return;
+        
+        // 阻止默认的按键行为
+        if([37, 38, 39, 40].includes(event.keyCode)) {
+            event.preventDefault();
+        }
         
         switch(event.keyCode) {
             case 37: // Left arrow
@@ -281,7 +295,7 @@ class Tetris {
     }
     
     gameLoop() {
-        if(!this.gameOver) {
+        if(!this.gameOver && this.isRunning && !this.isPaused) {
             const now = Date.now();
             if(now - this.lastMove > 1000) {
                 this.moveDown();
@@ -294,8 +308,32 @@ class Tetris {
     
     start() {
         console.log('Starting game...');
+        if (this.gameOver) {
+            this.reset();
+        }
+        this.isRunning = true;
+        this.isPaused = false;
         this.lastMove = Date.now();
         this.gameLoop();
+    }
+    
+    pause() {
+        if (this.isRunning && !this.gameOver) {
+            this.isPaused = true;
+            this.draw();
+        }
+    }
+    
+    resume() {
+        if (this.isRunning && !this.gameOver) {
+            this.isPaused = false;
+            this.lastMove = Date.now();
+        }
+    }
+    
+    restart() {
+        this.reset();
+        this.start();
     }
     
     cleanup() {
