@@ -1,5 +1,10 @@
 class Tetris {
     constructor(element) {
+        if (!element) {
+            console.error('No element provided to Tetris constructor');
+            return;
+        }
+
         // 初始化游戏画布
         this.element = element;
         this.canvas = document.createElement('canvas');
@@ -19,7 +24,7 @@ class Tetris {
         this.gameOver = false;
         this.lastMove = Date.now();
         
-        // 定义方块形状和颜色
+        // 定义方块形状
         this.pieces = [
             [[1, 1, 1, 1]],  // I
             [[1, 1], [1, 1]],  // O
@@ -30,39 +35,65 @@ class Tetris {
             [[0, 1, 1], [1, 1, 0]]   // Z
         ];
         
+        // 定义颜色
         this.colors = [
-            '#000000',  // background
-            '#FF0000',  // red
-            '#00FF00',  // green
-            '#0000FF',  // blue
-            '#FFFF00',  // yellow
-            '#00FFFF',  // cyan
-            '#FF00FF',  // magenta
-            '#FFA500'   // orange
+            '#000000',  // 背景色
+            '#FF0000',  // 红色
+            '#00FF00',  // 绿色
+            '#0000FF',  // 蓝色
+            '#FFFF00',  // 黄色
+            '#00FFFF',  // 青色
+            '#FF00FF',  // 品红
+            '#FFA500'   // 橙色
         ];
+        
+        // 添加键盘事件监听
+        this.handleKeyPress = this.handleKeyPress.bind(this);
+        document.addEventListener('keydown', this.handleKeyPress);
         
         // 创建第一个方块
         this.currentPiece = this.newPiece();
         
-        // 添加键盘事件监听
-        document.addEventListener('keydown', this.handleKeyPress.bind(this));
+        // 初始化游戏循环
+        this.gameLoop = this.gameLoop.bind(this);
     }
     
     newPiece() {
-        const piece = this.pieces[Math.floor(Math.random() * this.pieces.length)];
-        const color = Math.floor(Math.random() * (this.colors.length - 1)) + 1;
+        if (!Array.isArray(this.pieces) || this.pieces.length === 0) {
+            console.error('Pieces array is not properly initialized');
+            return null;
+        }
+
+        const pieceIndex = Math.floor(Math.random() * this.pieces.length);
+        const piece = this.pieces[pieceIndex];
+        if (!piece) {
+            console.error('Invalid piece selected:', pieceIndex);
+            return null;
+        }
+
+        const colorIndex = Math.floor(Math.random() * (this.colors.length - 1)) + 1;
+        
         return {
             shape: piece,
             x: Math.floor((this.cols - piece[0].length) / 2),
             y: 0,
-            color: color
+            color: colorIndex
         };
     }
     
     draw() {
+        if (!this.context) {
+            console.error('Canvas context is not initialized');
+            return;
+        }
+
         // 清空画布
         this.context.fillStyle = this.colors[0];
         this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // 绘制边框
+        this.context.strokeStyle = '#FFFFFF';
+        this.context.strokeRect(0, 0, this.canvas.width, this.canvas.height);
         
         // 绘制已固定的方块
         for(let y = 0; y < this.rows; y++) {
@@ -74,7 +105,7 @@ class Tetris {
         }
         
         // 绘制当前方块
-        if(this.currentPiece) {
+        if(this.currentPiece && this.currentPiece.shape) {
             for(let y = 0; y < this.currentPiece.shape.length; y++) {
                 for(let x = 0; x < this.currentPiece.shape[y].length; x++) {
                     if(this.currentPiece.shape[y][x]) {
@@ -99,13 +130,28 @@ class Tetris {
             this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
             this.context.fillStyle = '#FFFFFF';
             this.context.font = '40px Arial';
-            this.context.fillText('Game Over', 60, this.canvas.height / 2);
+            this.context.textAlign = 'center';
+            this.context.fillText('Game Over', this.canvas.width / 2, this.canvas.height / 2);
+            this.context.textAlign = 'start';
         }
     }
     
     drawBlock(x, y, color) {
+        if (!this.context || !this.colors[color]) {
+            return;
+        }
+        
         this.context.fillStyle = this.colors[color];
         this.context.fillRect(
+            x * this.blockSize,
+            y * this.blockSize,
+            this.blockSize - 1,
+            this.blockSize - 1
+        );
+        
+        // 添加边框
+        this.context.strokeStyle = '#FFFFFF';
+        this.context.strokeRect(
             x * this.blockSize,
             y * this.blockSize,
             this.blockSize - 1,
@@ -114,6 +160,8 @@ class Tetris {
     }
     
     moveDown() {
+        if (!this.currentPiece) return;
+        
         this.currentPiece.y++;
         if(this.checkCollision()) {
             this.currentPiece.y--;
@@ -127,6 +175,8 @@ class Tetris {
     }
     
     moveLeft() {
+        if (!this.currentPiece) return;
+        
         this.currentPiece.x--;
         if(this.checkCollision()) {
             this.currentPiece.x++;
@@ -134,6 +184,8 @@ class Tetris {
     }
     
     moveRight() {
+        if (!this.currentPiece) return;
+        
         this.currentPiece.x++;
         if(this.checkCollision()) {
             this.currentPiece.x--;
@@ -141,6 +193,8 @@ class Tetris {
     }
     
     rotate() {
+        if (!this.currentPiece || !this.currentPiece.shape) return;
+        
         const rotated = [];
         for(let i = 0; i < this.currentPiece.shape[0].length; i++) {
             rotated[i] = [];
@@ -148,6 +202,7 @@ class Tetris {
                 rotated[i].push(this.currentPiece.shape[j][i]);
             }
         }
+        
         const oldShape = this.currentPiece.shape;
         this.currentPiece.shape = rotated;
         if(this.checkCollision()) {
@@ -156,6 +211,8 @@ class Tetris {
     }
     
     checkCollision() {
+        if (!this.currentPiece || !this.currentPiece.shape) return true;
+        
         for(let y = 0; y < this.currentPiece.shape.length; y++) {
             for(let x = 0; x < this.currentPiece.shape[y].length; x++) {
                 if(this.currentPiece.shape[y][x]) {
@@ -174,6 +231,8 @@ class Tetris {
     }
     
     mergePiece() {
+        if (!this.currentPiece || !this.currentPiece.shape) return;
+        
         for(let y = 0; y < this.currentPiece.shape.length; y++) {
             for(let x = 0; x < this.currentPiece.shape[y].length; x++) {
                 if(this.currentPiece.shape[y][x]) {
@@ -202,38 +261,44 @@ class Tetris {
     }
     
     handleKeyPress(event) {
-        if(!this.gameOver) {
-            switch(event.keyCode) {
-                case 37: // Left arrow
-                    this.moveLeft();
-                    break;
-                case 39: // Right arrow
-                    this.moveRight();
-                    break;
-                case 40: // Down arrow
-                    this.moveDown();
-                    break;
-                case 38: // Up arrow
-                    this.rotate();
-                    break;
-            }
-            this.draw();
+        if(this.gameOver) return;
+        
+        switch(event.keyCode) {
+            case 37: // Left arrow
+                this.moveLeft();
+                break;
+            case 39: // Right arrow
+                this.moveRight();
+                break;
+            case 40: // Down arrow
+                this.moveDown();
+                break;
+            case 38: // Up arrow
+                this.rotate();
+                break;
         }
+        this.draw();
     }
     
     gameLoop() {
         if(!this.gameOver) {
-            if(Date.now() - this.lastMove > 1000) {
+            const now = Date.now();
+            if(now - this.lastMove > 1000) {
                 this.moveDown();
-                this.lastMove = Date.now();
+                this.lastMove = now;
             }
         }
         this.draw();
-        requestAnimationFrame(this.gameLoop.bind(this));
+        requestAnimationFrame(this.gameLoop);
     }
     
     start() {
+        console.log('Starting game...');
         this.lastMove = Date.now();
         this.gameLoop();
+    }
+    
+    cleanup() {
+        document.removeEventListener('keydown', this.handleKeyPress);
     }
 }
