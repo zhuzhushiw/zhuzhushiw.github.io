@@ -26,8 +26,8 @@
 <meta property="og:site_name" content="Hexo">
 <meta property="og:description" content="Tetris Game              #tetris-container {             display: flex;             justify-content: center;             align-items: center;             margin: 20px auto;             pad">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2024-12-25T16:00:26.042Z">
-<meta property="article:modified_time" content="2024-12-25T16:00:26.042Z">
+<meta property="article:published_time" content="2024-12-25T16:02:40.252Z">
+<meta property="article:modified_time" content="2024-12-25T16:02:40.252Z">
 <meta property="article:author" content="John Doe">
 <meta name="twitter:card" content="summary_large_image">
   
@@ -320,10 +320,10 @@
             <h2>游戏说明</h2>
             <p>使用键盘控制：</p>
             <ul>
-                <li>← 左移</li>
-                <li>→ 右移</li>
-                <li>↓ 加速下落</li>
-                <li>↑ 旋转方块</li>
+                <li>A 左移</li>
+                <li>D 右移</li>
+                <li>S 加速下落</li>
+                <li>W 旋转方块</li>
             </ul>
         </div>
     </div>
@@ -595,22 +595,17 @@
             handleKeyPress(event) {
                 if (!this.isRunning || this.gameOver) return;
                 
-                // 阻止箭头键的默认行为（页面滚动）
-                if ([37, 38, 39, 40].includes(event.keyCode)) {
-                    event.preventDefault();
-                }
-                
                 switch(event.keyCode) {
-                    case 37: // 左箭头
+                    case 65: // A - 左移
                         this.moveLeft();
                         break;
-                    case 39: // 右箭头
+                    case 68: // D - 右移
                         this.moveRight();
                         break;
-                    case 40: // 下箭头
+                    case 83: // S - 下落
                         this.moveDown();
                         break;
-                    case 38: // 上箭头
+                    case 87: // W - 旋转
                         this.rotate();
                         break;
                 }
