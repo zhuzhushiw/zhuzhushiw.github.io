@@ -17,6 +17,7 @@ class Tetris {
         this.blockSize = 30;
         this.cols = this.canvas.width / this.blockSize;
         this.rows = this.canvas.height / this.blockSize;
+        this.dropInterval = 1000; // 方块下落间隔（毫秒）
         
         // 初始化游戏状态
         this.reset();
@@ -50,6 +51,9 @@ class Tetris {
         
         // 初始化游戏循环
         this.gameLoop = this.gameLoop.bind(this);
+        
+        // 初始绘制
+        this.draw();
     }
     
     reset() {
@@ -60,6 +64,7 @@ class Tetris {
         this.isPaused = false;
         this.lastMove = Date.now();
         this.currentPiece = this.newPiece();
+        this.animationFrameId = null;
     }
     
     newPiece() {
@@ -256,65 +261,71 @@ class Tetris {
     
     clearLines() {
         let linesCleared = 0;
+        
         for(let y = this.rows - 1; y >= 0; y--) {
             if(this.board[y].every(cell => cell !== 0)) {
                 this.board.splice(y, 1);
                 this.board.unshift(Array(this.cols).fill(0));
                 linesCleared++;
-                y++;
+                y++; // 重新检查当前行，因为上面的行已经下移
             }
         }
+        
         if(linesCleared > 0) {
             this.score += [40, 100, 300, 1200][linesCleared - 1];
         }
     }
     
     handleKeyPress(event) {
-        if(this.gameOver || !this.isRunning || this.isPaused) return;
-        
-        // 阻止默认的按键行为
-        if([37, 38, 39, 40].includes(event.keyCode)) {
-            event.preventDefault();
-        }
+        if (!this.isRunning || this.gameOver) return;
         
         switch(event.keyCode) {
-            case 37: // Left arrow
+            case 37: // 左箭头
                 this.moveLeft();
                 break;
-            case 39: // Right arrow
+            case 39: // 右箭头
                 this.moveRight();
                 break;
-            case 40: // Down arrow
+            case 40: // 下箭头
                 this.moveDown();
                 break;
-            case 38: // Up arrow
+            case 38: // 上箭头
                 this.rotate();
                 break;
         }
+        
         this.draw();
     }
     
     gameLoop() {
-        if(!this.gameOver && this.isRunning && !this.isPaused) {
-            const now = Date.now();
-            if(now - this.lastMove > 1000) {
-                this.moveDown();
-                this.lastMove = now;
+        if (!this.isRunning || this.gameOver || this.isPaused) {
+            if (this.animationFrameId) {
+                cancelAnimationFrame(this.animationFrameId);
+                this.animationFrameId = null;
             }
+            return;
         }
+        
+        const now = Date.now();
+        if (now - this.lastMove > this.dropInterval) {
+            this.moveDown();
+            this.lastMove = now;
+        }
+        
         this.draw();
-        requestAnimationFrame(this.gameLoop);
+        this.animationFrameId = requestAnimationFrame(this.gameLoop);
     }
     
     start() {
-        console.log('Starting game...');
         if (this.gameOver) {
             this.reset();
         }
-        this.isRunning = true;
-        this.isPaused = false;
-        this.lastMove = Date.now();
-        this.gameLoop();
+        if (!this.isRunning) {
+            this.isRunning = true;
+            this.isPaused = false;
+            this.lastMove = Date.now();
+            this.gameLoop();
+        }
     }
     
     pause() {
@@ -328,15 +339,12 @@ class Tetris {
         if (this.isRunning && !this.gameOver) {
             this.isPaused = false;
             this.lastMove = Date.now();
+            this.gameLoop();
         }
     }
     
     restart() {
         this.reset();
         this.start();
-    }
-    
-    cleanup() {
-        document.removeEventListener('keydown', this.handleKeyPress);
     }
 }
